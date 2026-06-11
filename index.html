@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AURA COLLECTIVE | 戴上奔跑的藝術</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --pearl-white: #F8F9FA;
+            --aura-silver: #E2E8F0;
+            --deep-gray: #4A5568;
+            --soft-glow: rgba(255, 255, 255, 0.8);
+        }
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: var(--pearl-white);
+            color: var(--deep-gray);
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+        }
+
+        .serif {
+            font-family: 'Playfair Display', serif;
+        }
+
+        /* 珍珠光澤背景效果 */
+        .pearl-gradient {
+            background: radial-gradient(circle at 50% 50%, #ffffff 0%, #f0f2f5 100%);
+        }
+
+        /* 浮動動畫 */
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+            100% { transform: translateY(0px); }
+        }
+
+        .floating {
+            animation: float 4s ease-in-out infinite;
+        }
+
+        /* 毛玻璃效果 */
+        .glass {
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .nav-link {
+            position: relative;
+            transition: color 0.3s;
+            white-space: nowrap;
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 1px;
+            bottom: -2px;
+            left: 0;
+            background-color: var(--deep-gray);
+            transition: width 0.3s;
+        }
+
+        .nav-link:hover::after {
+            width: 100%;
+        }
+
+        .hero-title {
+            letter-spacing: 0.2em;
+            text-shadow: 0 0 20px rgba(255,255,255,0.8);
+        }
+
+        section {
+            padding: 80px 20px;
+        }
+
+        /* 跑馬燈動畫 */
+        @keyframes marquee {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+        .animate-marquee {
+            display: flex;
+            animation: marquee 30s linear infinite;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 導覽列修正版 -->
+    <nav class="fixed top-0 w-full z-50 glass px-4 py-3 md:px-8 md:py-4 flex flex-col md:flex-row justify-between items-center gap-3">
+        <!-- Logo 區域 -->
+        <div class="flex items-center space-x-2">
+            <img src="/image/83684.jpg" alt="AURA Logo" class="h-8 md:h-10" onerror="this.src='https://placehold.co/40x40?text=AURA'">
+            <span class="text-sm font-light tracking-tighter md:hidden">AURA</span>
+        </div>
+
+        <!-- 連結區域：移除 hidden，增加手機版縮小與換行邏輯 -->
+        <div class="flex flex-wrap justify-center items-center gap-x-4 gap-y-2 text-[10px] sm:text-xs md:text-sm tracking-widest">
+            <a href="story.html" target="_blank" class="nav-link">品牌故事</a>
+            <a href="music.html" target="_blank" class="nav-link">品牌主題</a>
+            <a href="shop2.html" target="_blank" class="nav-link">商品介紹</a>
+            <a href="address.html" target="_blank" class="nav-link">實體店面</a>
+            <a href="message.html" target="_blank" class="nav-link">聯繫我們</a>
+        </div>
+
+        <!-- 右側按鈕 -->
+        <div class="hidden md:block">
+            <a href="console.html" target="_blank" class="border border-gray-400 px-4 py-1 text-xs tracking-tighter hover:bg-gray-800 hover:text-white transition">Console</a>
+        </div>
+    </nav>
+
+    <!-- 首頁 Hero Section -->
+    <header class="h-screen flex flex-col justify-center items-center text-center relative overflow-hidden pearl-gradient pt-20">
+        <div class="z-10 animate__animated animate__fadeIn px-4">
+            <h1 class="hero-title text-3xl md:text-6xl font-light mb-4">AURA COLLECTIVE</h1>
+            <p class="serif italic text-base md:text-xl text-gray-500 mb-8 tracking-widest">"戴上奔跑的藝術"</p>
+            <div class="flex justify-center mb-8">
+                <img src="image/80001.gif" alt="Aura Girl in Luxury" class="w-88 md:w-120 rounded-full shadow-2xl border-4 border-white floating" onerror="this.src='https://placehold.co/300x300?text=Aura+Girl'">
+            </div>
+            <h2 class="text-2xl md:text-3xl font-light mb-6">從名畫<strong>「出走」</strong>的靈感</h2>
+        </div>
+        <!-- 裝飾背景文字 -->
+        <div class="absolute -bottom-10 -right-10 text-[6rem] md:text-[10rem] font-bold text-gray-100 select-none opacity-50 serif">AURA</div>
+    </header>
+
+    <!-- 品牌故事 Section -->
+    <section id="story" class="max-w-6xl mx-auto grid md:grid-cols-2 gap-12 items-center">
+        <div class="order-2 md:order-1 px-4">
+            <span class="text-xs tracking-[0.5em] text-gray-400 uppercase mb-4 block text-center md:text-left">Brand Origin</span>
+            <div class="space-y-4 text-gray-600 leading-relaxed text-sm md:text-base">
+                <p>在古老的藝術館深處，那名帶著珍珠耳環的少女，看膩了幾百年的靜止時光。她決定化身為一個圓潤、輕盈的小靈魂，跳出畫框，走進現代女孩的日常。</p>
+                <p>她發現，美不需要被框在博物館裡，更不需要高昂的標價。她化身為 「Aura Girl」，致力於收集世界上最溫潤的微光，將它們串成日常也能配戴的珠寶。</p>
+                <p class="font-medium text-gray-800 italic">「我們不賣『傳家寶』，我們販售的是屬於你的個人氛圍感。」</p>
+            </div>
+        </div>
+        <div class="order-1 md:order-2 flex justify-center">
+            <div class="relative">
+                <img src="image/83378.png" alt="Aura Girl Sketch" class="w-64 md:w-96 shadow-lg rotate-3 hover:rotate-0 transition-transform duration-500" onerror="this.src='https://placehold.co/400x500?text=Sketch'">
+                <div class="absolute -top-4 -left-4 w-full h-full border border-gray-200 -z-10 translate-x-4 translate-y-4"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 核心論述：微觀空間 Section -->
+    <section id="philosophy" class="bg-gray-900 text-white overflow-hidden relative">
+        <div class="max-w-4xl mx-auto text-center z-10 relative">
+            <h2 class="text-2xl md:text-4xl font-light mb-12 tracking-widest">微觀空間的流動藝術</h2>
+            <div class="grid md:grid-cols-3 gap-6 mb-16 px-4">
+                <div class="p-6 border border-gray-700 hover:border-gray-500 transition">
+                    <h3 class="serif italic text-lg mb-4">空間維度</h3>
+                    <p class="text-xs text-gray-400">珍珠不只是點綴，它是光影的座標，在頸間耳畔開拓出一片屬於自我的小宇宙。</p>
+                </div>
+                <div class="p-6 border border-gray-700 hover:border-gray-500 transition">
+                    <h3 class="serif italic text-lg mb-4">探索精神</h3>
+                    <p class="text-xs text-gray-400">在鋼筋水泥的城市森林裡穿梭，在數位訊號的波段中流動。每一顆珍珠都是一個微小的重力場。</p>
+                </div>
+                <div class="p-6 border border-gray-700 hover:border-gray-500 transition">
+                    <h3 class="serif italic text-lg mb-4">擴散氣場</h3>
+                    <p class="text-xs text-gray-400">模糊日常與奢侈的邊界，讓你的內在氣場（AURA）隨光影向外擴散。</p>
+                </div>
+            </div>
+            
+            <div class="mt-8">
+                <p class="text-xl md:text-3xl serif italic leading-relaxed px-4">
+                    「飾品是身體的建築，<br>珍珠是流動的詩句。」
+                </p>
+            </div>
+        </div>
+        <!-- 裝飾背景 -->
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] md:w-[800px] h-[300px] md:h-[800px] bg-blue-500 opacity-10 blur-[100px] md:blur-[150px] rounded-full"></div>
+    </section>
+
+    <!-- 視覺呈現 Section -->
+    <section id="collection" class="py-16 md:py-24">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex flex-col md:flex-row items-center md:items-end justify-between mb-12 text-center md:text-left">
+                <div>
+                    <span class="text-xs tracking-[0.5em] text-gray-400 uppercase mb-2 block">Atmosphere</span>
+                    <h2 class="text-3xl md:text-4xl font-light">空間座標：我們的日常</h2>
+                </div>
+                <p class="text-gray-500 max-w-sm mt-4 md:mt-0 italic text-sm">捕捉那些轉瞬即逝的動態，將它們凝固成永恆的飾品。</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                <div class="md:col-span-8 overflow-hidden relative group h-[300px] md:h-[500px]">
+                    <img src="/image/10041053.png" alt="Collective Moment" class="w-full h-full object-cover transition duration-700 group-hover:scale-110" onerror="this.src='https://placehold.co/800x600?text=Atmosphere'">
+                    <div class="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-500">
+                        <div class="text-center p-6 border border-white text-white">
+                            <h3 class="text-xl md:text-2xl mb-2">流動場域</h3>
+                            <p class="text-xs tracking-widest italic">Inhabit the Folds of Life</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="md:col-span-4 bg-white p-8 md:p-12 flex flex-col justify-center border border-gray-100 shadow-sm">
+                    <h3 class="text-xl md:text-2xl font-light mb-6 text-center md:text-left">縮小藝術的邊界，<br>擴張自我的氣場。</h3>
+                    <p class="text-gray-600 text-xs md:text-sm leading-relaxed mb-8">
+                        打破「珍珠很貴、很老氣」的刻板印象。提供高品質、價格親民且設計現代的產品，讓年輕族群能無壓力地擁有第一件珠寶。
+                    </p>
+                    <ul class="text-[10px] md:text-xs space-y-4 tracking-widest text-gray-500">
+                        <li>— 日常的藝術化 (Daily Art)</li>
+                        <li>— 微光美學 (Glow Aesthetics)</li>
+                        <li>— 輕盈的輕奢 (Light Luxury)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Slogan 跑馬燈 -->
+    <div class="bg-gray-100 py-6 overflow-hidden border-y border-gray-200">
+        <div class="animate-marquee">
+            <span class="mx-6 md:mx-10 text-xs md:text-sm tracking-[0.3em] text-gray-400 uppercase">戴上 AURA，自帶光芒</span>
+            <span class="mx-6 md:mx-10 text-xs md:text-sm tracking-[0.3em] text-gray-400 uppercase">第一顆珍珠，不必等誰送</span>
+            <span class="mx-6 md:mx-10 text-xs md:text-sm tracking-[0.3em] text-gray-400 uppercase">把名畫戴在耳尖</span>
+            <span class="mx-6 md:mx-10 text-xs md:text-sm tracking-[0.3em] text-gray-400 uppercase">飾品是身體的建築</span>
+            <span class="mx-6 md:mx-10 text-xs md:text-sm tracking-[0.3em] text-gray-400 uppercase">戴上 AURA，自帶光芒</span>
+            <span class="mx-6 md:mx-10 text-xs md:text-sm tracking-[0.3em] text-gray-400 uppercase">第一顆珍珠，不必等誰送</span>
+        </div>
+    </div>
+
+    <!-- 底部資訊 -->
+    <footer id="contact" class="bg-white py-12 md:py-20 px-6 border-t border-gray-100 text-center">
+        <div class="max-w-4xl mx-auto space-y-6">
+            <h3 class="serif italic text-2xl">AURA COLLECTIVE</h3>
+            <p class="text-sm text-gray-400 tracking-widest">探索內在的珍珠微光</p>
+            <div class="flex justify-center space-x-6 text-xs text-gray-500">
+                <a href="#" class="hover:text-black">INSTAGRAM</a>
+                <a href="#" class="hover:text-black">FACEBOOK</a>
+                <a href="message.html" class="hover:text-black">CONTACT US</a>
+            </div>
+            <p class="text-[10px] text-gray-300 mt-8">© 2026 AURA COLLECTIVE. All Rights Reserved.</p>
+        </div>
+    </footer>
+
+</body>
+</html>

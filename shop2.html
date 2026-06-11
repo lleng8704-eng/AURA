@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AURA COLLECTIVE | 珠寶珍珠購物場域</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght=300;600&family=Montserrat:wght=200;400&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Noto Serif TC', serif;
+            background-color: #f2fafa;
+            color: #1a1a1a;
+        }
+       .montserrat { font-family: 'Montserrat', sans-serif; }
+        
+        /* 商品卡片懸停特效 */
+       .product-card {
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+       .product-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.05);
+        }
+       .product-image-container {
+            overflow: hidden;
+            position: relative;
+        }
+       .product-image-container img {
+            transition: transform 0.8s ease;
+        }
+       .product-card:hover.product-image-container img {
+            transform: scale(1.1);
+        }
+
+        /* 模擬加入購物車通知 */
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: #1a1a1a;
+            color: #fff;
+            text-align: center;
+            padding: 16px;
+            position: fixed;
+            z-index: 100;
+            left: 50%;
+            bottom: 30px;
+            transform: translateX(-50%);
+            letter-spacing: 0.1em;
+            font-size: 0.875rem;
+        }
+        #toast.show {
+            visibility: visible;
+            animation: fadein 0.5s, fadeout 0.5s 2.5s;
+        }
+
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+    </style>
+</head>
+<body>
+
+    <div class="bg-[#1a1a1a] text-white text-[10px] py-2 text-center tracking-[0.3em] uppercase">
+        跨越畫框的限制，戴上奔跑的藝術 | 全球免運費場域
+    </div>
+
+    <header class="bg-white border-b border-gray-100 sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-4 flex flex-wrap items-center justify-between">
+            <div class="text-2xl tracking-[0.4em] montserrat font-extralight mb-4 md:mb-0">AURA</div>
+
+            <div class="w-full md:w-1/2 px-0 md:px-8 order-3 md:order-2">
+                <div class="relative group">
+                    <input type="text" placeholder="探索你的光影座標..." class="w-full bg-gray-50 border border-gray-200 py-2.5 px-4 text-sm focus:outline-none focus:border-black transition-all">
+                    <button class="absolute right-3 top-2.5 text-gray-400 group-hover:text-black">
+                        <i data-lucide="search" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-6 order-2 md:order-3">
+                <div class="hidden lg:flex flex-col items-end mr-4">
+                    <span class="text-[9px] uppercase tracking-widest opacity-40">Aura Member</span>
+                    
+                </div>
+                <div class="relative cursor-pointer">
+                    <i data-lucide="heart" class="w-5 h-5"></i>
+                </div>
+                <div class="relative cursor-pointer" onclick="toggleCart()">
+                    <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+                    <span id="cart-count" class="absolute -top-2 -right-2 bg-black text-white text-[8px] w-4 h-4 rounded-full flex items-center justify-center">0</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="container mx-auto px-4 py-2 hidden md:flex space-x-8 text-xs tracking-[0.2em] font-medium overflow-x-auto whitespace-nowrap">
+            <a href="#" class="border-b-2 border-black pb-1">所有場域</a>
+            <a href="#" class="hover:text-gray-400 transition">軌道 ORBIT (項鍊)</a>
+            <a href="#" class="hover:text-gray-400 transition">維度 DIMENSION (耳環)</a>
+            <a href="#" class="hover:text-gray-400 transition">場域 FIELD (戒指)</a>
+            <a href="#" class="hover:text-gray-400 transition">褶皺 FOLD (新品)</a>
+            <a href="#" class="text-red-800">限定折扣</a>
+        </div>
+    </header>
+
+    <section class="container mx-auto px-4 py-8">
+        <div class="relative h-[400px] md:h-[500px] bg-gray-100 overflow-hidden">
+            <img src="https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&q=80&w=2000" alt="Banner" class="w-full h-full object-cover">
+            <div class="absolute inset-0 bg-black/20 flex flex-col justify-center items-start p-12 md:p-24 text-white">
+                <span class="text-xs tracking-[0.5em] mb-4">AURA COLLECTIVE</span>
+                <h2 class="text-4xl md:text-6xl font-light mb-6 tracking-tighter">縮小藝術的邊界<br>擴張自我的氣場</h2>
+                <button class="px-8 py-3 border border-white text-xs tracking-widest hover:bg-white hover:text-black transition-all">探索系列內容</button>
+            </div>
+        </div>
+    </section>
+
+    <section class="container mx-auto px-4 py-12">
+        <div class="flex justify-between items-end mb-12 border-b border-gray-100 pb-6">
+            <div>
+                <h3 class="text-2xl font-light tracking-widest">光影座標庫</h3>
+                <p class="text-[10px] opacity-40 uppercase tracking-widest mt-2">Light Coordinate Library / 24-25 Series</p>
+            </div>
+            <div class="text-xs opacity-50 flex items-center cursor-pointer hover:opacity-100">
+                篩選條件 <i data-lucide="chevron-down" class="w-3 h-3 ml-1"></i>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-12">
+            
+            <div class="product-card">
+                <div class="product-image-container aspect-[3/4] bg-gray-50 mb-4">
+                    <img src="shop/84536.jpg" alt="水晶寶寶" class="w-full h-full object-cover">
+                    <div class="absolute top-4 left-4 bg-white/80 backdrop-blur px-2 py-1 text-[8px] tracking-widest uppercase">軌道 Orbit</div>
+                </div>
+                <div class="px-2">
+                    <h4 class="text-sm font-medium tracking-wide mb-1">流動座標水晶寶寶</h4>
+                    <p class="text-[10px] opacity-40 mb-3 montserrat">NO. OR-0423-W</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm montserrat font-light">NT$ 4,280</span>
+                        <div class="flex space-x-3">
+                            <button onclick="addToCart('流動座標水晶寶寶', 4280)" class="hover:text-gray-400 transition"><i data-lucide="plus" class="w-4 h-4"></i></button>
+                            <button class="hover:text-red-800 transition"><i data-lucide="shopping-cart" class="w-4 h-4"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="product-card">
+                <div class="product-image-container aspect-[3/4] bg-gray-50 mb-4">
+                    <img src="shop/1 (1).jpg" alt="珍珠耳環" class="w-full h-full object-cover">
+                    <div class="absolute top-4 left-4 bg-white/80 backdrop-blur px-2 py-1 text-[8px] tracking-widest uppercase">維度 Dimension</div>
+                </div>
+                <div class="px-2">
+                    <h4 class="text-sm font-medium tracking-wide mb-1">躍遷畫框不對稱耳墜</h4>
+                    <p class="text-[10px] opacity-40 mb-3 montserrat">NO. DI-7721-P</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm montserrat font-light">NT$ 3,600</span>
+                        <div class="flex space-x-3">
+                            <button onclick="addToCart('躍遷畫框不對稱耳墜', 3600)" class="hover:text-gray-400 transition"><i data-lucide="plus" class="w-4 h-4"></i></button>
+                            <button class="hover:text-red-800 transition"><i data-lucide="shopping-cart" class="w-4 h-4"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="product-card">
+                <div class="product-image-container aspect-[3/4] bg-gray-50 mb-4">
+                    <img src="shop/84772.jpg" alt="娃娃模型" class="w-full h-full object-cover">
+                    <div class="absolute top-4 left-4 bg-white/80 backdrop-blur px-2 py-1 text-[8px] tracking-widest uppercase">場域 Field</div>
+                </div>
+                <div class="px-2">
+                    <h4 class="text-sm font-medium tracking-wide mb-1">AURA男寶寶組合模型</h4>
+                    <p class="text-[10px] opacity-40 mb-3 montserrat">NO. FI-0092-G</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm montserrat font-light">NT$ 990</span>
+                        <div class="flex space-x-3">
+                            <button onclick="addToCart('AURA男寶寶組合模型', 5100)" class="hover:text-gray-400 transition"><i data-lucide="plus" class="w-4 h-4"></i></button>
+                            <button class="hover:text-red-800 transition"><i data-lucide="shopping-cart" class="w-4 h-4"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="product-card">
+                <div class="product-image-container aspect-[3/4] bg-gray-50 mb-4">
+                    <img src="shop/84998.jpg" alt="娃娃模型" class="w-full h-full object-cover">
+                    <div class="absolute top-4 left-4 bg-white/80 backdrop-blur px-2 py-1 text-[8px] tracking-widest uppercase">褶皺 Fold</div>
+                </div>
+                <div class="px-2">
+                    <h4 class="text-sm font-medium tracking-wide mb-1">AURA女寶寶組合模型</h4>
+                    <p class="text-[10px] opacity-40 mb-3 montserrat">NO. FO-1111-B</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm montserrat font-light">NT$ 1200</span>
+                        <div class="flex space-x-3">
+                            <button onclick="addToCart('AURA女寶寶組合模型', 1200)" class="hover:text-gray-400 transition"><i data-lucide="plus" class="w-4 h-4"></i></button>
+                            <button class="hover:text-red-800 transition"><i data-lucide="shopping-cart" class="w-4 h-4"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="product-card">
+                <div class="product-image-container aspect-[3/4] bg-gray-50 mb-4">
+                    <img src="shop/85020.jpg" alt="珍珠首飾" class="w-full h-full object-cover">
+                    <div class="absolute top-4 left-4 bg-white/80 backdrop-blur px-2 py-1 text-[8px] tracking-widest uppercase">褶皺 Fold</div>
+                </div>
+                <div class="px-2">
+                    <h4 class="text-sm font-medium tracking-wide mb-1">端午節限定珍珠項鍊</h4>
+                    <p class="text-[10px] opacity-40 mb-3 montserrat">NO. FO-1111-B</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm montserrat font-light">NT$ 12,800</span>
+                        <div class="flex space-x-3">
+                            <button onclick="addToCart('端午節限定珍珠項鍊', 12800)" class="hover:text-gray-400 transition"><i data-lucide="plus" class="w-4 h-4"></i></button>
+                            <button class="hover:text-red-800 transition"><i data-lucide="shopping-cart" class="w-4 h-4"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="product-card">
+                <div class="product-image-container aspect-[3/4] bg-gray-50 mb-4">
+                    <img src="shop/85020.png" alt="珍珠首飾" class="w-full h-full object-cover">
+                    <div class="absolute top-4 left-4 bg-white/80 backdrop-blur px-2 py-1 text-[8px] tracking-widest uppercase">褶皺 Fold</div>
+                </div>
+                <div class="px-2">
+                    <h4 class="text-sm font-medium tracking-wide mb-1">珍珠少女的叛逆 - AURA 珍珠項鍊</h4>
+                    <p class="text-[10px] opacity-40 mb-3 montserrat">NO. FO-1111-B</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm montserrat font-light">NT$ 22,800</span>
+                        <div class="flex space-x-3">
+                            <button onclick="addToCart('珍珠少女的叛逆 - AURA 珍珠項鍊', 22800)" class="hover:text-gray-400 transition"><i data-lucide="plus" class="w-4 h-4"></i></button>
+                            <button class="hover:text-red-800 transition"><i data-lucide="shopping-cart" class="w-4 h-4"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="product-card">
+                <div class="product-image-container aspect-[3/4] bg-gray-50 mb-4">
+                    <img src="shop/1 (6).jpg" alt="珍珠首飾" class="w-full h-full object-cover">
+                    <div class="absolute top-4 left-4 bg-white/80 backdrop-blur px-2 py-1 text-[8px] tracking-widest uppercase">褶皺 Fold</div>
+                </div>
+                <div class="px-2">
+                    <h4 class="text-sm font-medium tracking-wide mb-1">深紅微光絲絨珍珠項鍊</h4>
+                    <p class="text-[10px] opacity-40 mb-3 montserrat">NO. FO-1111-B</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm montserrat font-light">NT$ 4,800</span>
+                        <div class="flex space-x-3">
+                            <button onclick="addToCart('深紅微光絲絨珍珠項鍊', 4800)" class="hover:text-gray-400 transition"><i data-lucide="plus" class="w-4 h-4"></i></button>
+                            <button class="hover:text-red-800 transition"><i data-lucide="shopping-cart" class="w-4 h-4"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="product-card">
+                <div class="product-image-container aspect-[3/4] bg-gray-50 mb-4">
+                    <img src="shop/1 (7).jpg" alt="珍珠首飾" class="w-full h-full object-cover">
+                    <div class="absolute top-4 left-4 bg-white/80 backdrop-blur px-2 py-1 text-[8px] tracking-widest uppercase">褶皺 Fold</div>
+                </div>
+                <div class="px-2">
+                    <h4 class="text-sm font-medium tracking-wide mb-1">幾何切割珍珠項鍊</h4>
+                    <p class="text-[10px] opacity-40 mb-3 montserrat">NO. FO-1111-B</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm montserrat font-light">NT$ 32,800</span>
+                        <div class="flex space-x-3">
+                            <button onclick="addToCart('幾何切割珍珠項鍊', 32800)" class="hover:text-gray-400 transition"><i data-lucide="plus" class="w-4 h-4"></i></button>
+                            <button class="hover:text-red-800 transition"><i data-lucide="shopping-cart" class="w-4 h-4"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <section class="bg-gray-100 py-24 my-24">
+        <div class="container mx-auto px-4 text-center">
+            <h4 class="text-xs tracking-[0.5em] opacity-40 mb-8 uppercase">Micro-Space Fluid Art</h4>
+            <blockquote class="text-2xl md:text-4xl font-light italic leading-relaxed max-w-4xl mx-auto mb-12">
+                「在生活的經緯之間，定義你的光影座標。」
+            </blockquote>
+            <p class="text-sm opacity-60 font-light max-w-xl mx-auto">
+                飾品是身體的建築，珍珠是流動的詩句。我們將轉瞬即逝的動態，凝固成永恆的飾品。
+            </p>
+        </div>
+    </section>
+
+    <footer class="bg-white border-t border-gray-100 pt-20 pb-10">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-20">
+                <div class="col-span-1 md:col-span-1">
+                    <div class="text-xl tracking-[0.4em] montserrat font-extralight mb-6">AURA</div>
+                    <p class="text-xs leading-loose opacity-40">
+                        台北市信義區微觀藝術空間<br>
+                        Aura Collective Studio 01<br>
+                        (02) 2345-6789
+                    </p>
+                </div>
+                <div>
+                    <h5 class="text-xs font-bold tracking-widest mb-6 uppercase">購物導航</h5>
+                    <ul class="text-xs space-y-4 opacity-50">
+                        <li><a href="#" class="hover:text-black">配送場域說明</a></li>
+                        <li><a href="#" class="hover:text-black">維度退換貨政策</a></li>
+                        <li><a href="#" class="hover:text-black">付款安全軌道</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h5 class="text-xs font-bold tracking-widest mb-6 uppercase">關於 AURA</h5>
+                    <ul class="text-xs space-y-4 opacity-50">
+                        <li><a href="#" class="hover:text-black">品牌故事：躍遷</a></li>
+                        <li><a href="#" class="hover:text-black">藝術策畫</a></li>
+                        <li><a href="#" class="hover:text-black">店鋪座標</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h5 class="text-xs font-bold tracking-widest mb-6 uppercase">訂閱光影資訊</h5>
+                    <div class="flex mt-6">
+                        <input type="email" placeholder="Email Address" class="bg-gray-50 border-b border-gray-200 py-2 text-xs focus:outline-none focus:border-black flex-grow">
+                        <button class="ml-4 text-xs tracking-widest uppercase">Join</button>
+                    </div>
+                </div>
+            </div>
+            <div class="text-center text-[9px] tracking-[0.4em] opacity-30 pt-10 border-t border-gray-50 uppercase">
+                © 2026 AURA COLLECTIVE · Defining Your Light Coordinates
+            </div>
+        </div>
+    </footer>
+
+    <div id="toast">已捕捉光影，加入您的私人空間。</div>
+
+    <div id="aura-global-preview-modal" 
+         class="hidden fixed inset-0 z-50 items-center justify-center bg-black/80 backdrop-blur-sm opacity-0 transition-opacity duration-300 ease-in-out">
+        <img id="aura-preview-target-image" 
+             src="" 
+             alt="AURA 大圖預覽" 
+             class="object-contain max-w-[85vw] max-h-[85vh] rounded shadow-2xl transition-transform duration-300 ease-out scale-95 pointer-events-auto cursor-zoom-out">
+    </div>
+
+    <div class="fixed right-6 bottom-32 flex flex-col space-y-4 z-40">
+        <div class="w-12 h-12 bg-white border border-gray-100 flex items-center justify-center shadow-sm cursor-pointer hover:bg-black hover:text-white transition-all">
+            <i data-lucide="user" class="w-5 h-5"></i>
+        </div>
+        <div class="w-12 h-12 bg-white border border-gray-100 flex items-center justify-center shadow-sm cursor-pointer hover:bg-black hover:text-white transition-all relative">
+            <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+            <span class="cart-num-badge absolute top-0 right-0 bg-red-800 text-white text-[8px] px-1">0</span>
+        </div>
+        <div onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="w-12 h-12 bg-white border border-gray-100 flex items-center justify-center shadow-sm cursor-pointer hover:bg-black hover:text-white transition-all">
+            <i data-lucide="chevron-up" class="w-5 h-5"></i>
+        </div>
+    </div>
+
+    <script>
+        // 初始化 Lucide 圖標
+        lucide.createIcons();
+
+        let cartCount = 0;
+
+        function addToCart(name, price) {
+            cartCount++;
+            document.getElementById('cart-count').innerText = cartCount;
+            const badges = document.querySelectorAll('.cart-num-badge');
+            badges.forEach(b => b.innerText = cartCount);
+            showToast();
+        }
+
+        function showToast() {
+            const toast = document.getElementById("toast");
+            toast.className = "show";
+            setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 3000);
+        }
+
+        function toggleCart() {
+            alert(`[模擬結帳系統]\n目前購物車內共有 ${cartCount} 件座標商品。\nAURA COLLECTIVE：正在進行空間結算中...`);
+        }
+
+        // --- 商品圖片點擊放大與移開即消失之核心邏輯 ---
+        document.addEventListener("DOMContentLoaded", () => {
+            const previewModal = document.getElementById("aura-global-preview-modal");
+            const previewImage = document.getElementById("aura-preview-target-image");
+            
+            // 1. 為每個商品卡片內的圖片綁定「點擊放大」事件
+            document.querySelectorAll(".product-image-container img").forEach(img => {
+                img.classList.add("cursor-zoom-in"); // 滑鼠懸停縮圖時顯示放大鏡指針
+                
+                img.addEventListener("click", (event) => {
+                    event.stopPropagation(); // 阻止事件冒泡
+                    
+                    // 將被點擊縮圖的網址，同步到彈出層的大圖中
+                    previewImage.src = img.src;
+                    
+                    // 開啟彈出層：將 hidden 換成 flex 讓其參與排版
+                    previewModal.classList.remove("hidden");
+                    previewModal.classList.add("flex");
+                    
+                    // 微小延遲以觸發 CSS Transition 平滑淡入與微幅放大動畫
+                    setTimeout(() => {
+                        previewModal.classList.remove("opacity-0");
+                        previewModal.classList.add("opacity-100");
+                        previewImage.classList.remove("scale-95");
+                        previewImage.classList.add("scale-100");
+                    }, 20);
+                });
+            });
+
+            // 2. 精確監聽大圖本身的「mouseleave」事件：滑鼠只要移開大圖主體，大圖便會自動消失
+            previewImage.addEventListener("mouseleave", (event) => {
+                // Chromium 瀏覽器高頻率操作下的偽陽性事件校驗
+                const currentHovered = document.elementFromPoint(event.clientX, event.clientY);
+                if (previewImage === currentHovered) {
+                    return; 
+                }
+                closeLargePreview();
+            });
+
+            // 3. 點擊背景遮罩層直接關閉（同時完美降級相容行動端不具備滑鼠指針的觸控環境）
+            previewModal.addEventListener("click", (event) => {
+                if (event.target === previewModal) {
+                    closeLargePreview();
+                }
+            });
+
+            // 封裝重置與淡出動畫的關閉機制
+            function closeLargePreview() {
+                previewModal.classList.remove("opacity-100");
+                previewModal.classList.add("opacity-0");
+                previewImage.classList.remove("scale-100");
+                previewImage.classList.add("scale-95");
+                
+                // 等待 300ms 動畫淡出結束後，徹底將彈出層從 DOM 文件流中隱藏並清空圖源
+                setTimeout(() => {
+                    previewModal.classList.remove("flex");
+                    previewModal.classList.add("hidden");
+                    previewImage.src = "";
+                }, 300);
+            }
+        });
+    </script>
+</body>
+</html>
