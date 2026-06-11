@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AURA COLLECTIVE | 空間共鳴留言板</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;500&family=Montserrat:wght@200;400&display=swap" rel="stylesheet">
+    <style>
+        :root { --pearl-cream: #f9f8f4; --aura-gold: #d4af37; --space-black: #1a1a1a; }
+        body { font-family: 'Noto Serif TC', serif; background-color: var(--pearl-cream); color: var(--space-black); }
+        .message-card { background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(10px); border-radius: 2px; }
+        .mosaic-text { filter: blur(5px); opacity: 0.6; pointer-events: none; }
+        .aura-input { background: transparent; border-bottom: 1px solid rgba(26, 26, 26, 0.15); }
+        .btn-leap { background: var(--space-black); color: white; transition: all 0.4s; }
+        .label-xs { font-size: 9px; text-transform: uppercase; letter-spacing: 0.2em; opacity: 0.4; }
+    </style>
+</head>
+<body>
+
+    <nav class="p-8 flex justify-between items-center"><div class="text-xl tracking-[0.4em] montserrat font-extralight">AURA COLLECTIVE</div></nav>
+
+    <main class="container mx-auto px-6 py-12">
+        <div class="grid lg:grid-cols-12 gap-12">
+            <div class="lg:col-span-5">
+                <form id="feedbackForm" class="space-y-8 p-8 border border-black/5 bg-white/50">
+                    <div><label class="label-xs">姓名 / NAME</label><input type="text" id="name" required class="w-full aura-input py-2 text-sm"></div>
+                    <div><label class="label-xs">EMAIL</label><input type="email" id="email" required class="w-full aura-input py-2 text-sm"></div>
+                    <div><label class="label-xs">地址 / LOCATION</label><input type="text" id="address" class="w-full aura-input py-2 text-sm"></div>
+                    <div><label class="label-xs">意見 / RESONANCE</label><textarea id="message" required rows="3" class="w-full aura-input py-2 text-sm"></textarea></div>
+                    <button type="submit" id="submitBtn" class="w-full py-5 btn-leap text-[10px] tracking-[0.4em] uppercase">傳遞訊息 LEAP DATA</button>
+                </form>
+            </div>
+
+            <div class="lg:col-span-7">
+                <div id="messageBoard" class="space-y-4"></div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        (function(){ emailjs.init("blqOSDTHh0EdDe3Ua"); })();
+
+        const form = document.getElementById('feedbackForm');
+        let messages = JSON.parse(localStorage.getItem('aura_registry_v2')) || [];
+
+        function renderMessages() {
+            const board = document.getElementById('messageBoard');
+            board.innerHTML = messages.map(msg => `
+                <div class="message-card p-6 border border-black/5">
+                    <div class="flex justify-between items-center mb-4">
+                        <span class="text-md font-bold">${msg.name}</span>
+                        <span class="text-[9px] opacity-40">${msg.date}</span>
+                    </div>
+                    <div class="mosaic-text text-sm">此內容已進行隱私加密處理（馬賽克）</div>
+                </div>
+            `).join('');
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            btn.textContent = 'SENDING...';
+
+            const templateParams = {
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                address: document.getElementById('address').value,
+                message: document.getElementById('message').value
+            };
+
+            try {
+                // 1. 發送給管理員
+                await emailjs.send('service_gjv863a', 'template_8wcnwva', templateParams);
+                // 2. 自動回覆客戶
+                await emailjs.send('service_gjv863a', 'template_i6kp78m', templateParams);
+                
+                // 3. 儲存至本地
+                messages.push({ ...templateParams, date: new Date().toLocaleDateString() });
+                localStorage.setItem('aura_registry_v2', JSON.stringify(messages));
+                
+                alert('訊息已成功傳遞！');
+                form.reset();
+                renderMessages();
+            } catch (err) {
+                alert('發送失敗，請檢查網路狀態');
+            } finally {
+                btn.textContent = '傳遞訊息 LEAP DATA';
+            }
+        });
+
+        renderMessages();
+    </script>
+</body>
+</html>
