@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AURA POS 雲端連線正式版</title>
+    <!-- 載入 Tailwind CSS (排版與樣式) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 載入 FontAwesome (圖示) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fadeIn { animation: fadeIn 0.3s ease-in-out; }
+        .click-effect:active { transform: scale(0.95); }
+       @media print {
+            body > *:not(#print-receipt-template) { display: none !important; }
+            #print-receipt-template { display: block !important; position: absolute; top: 0; left: 0; width: 100%; }
+            @page { size: auto; margin: 0mm; }
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 h-[100dvh] w-full font-sans text-gray-800 overflow-hidden flex flex-col-reverse md:flex-row relative">
+
+    <!-- 🟢 初始雲端資料載入畫面 -->
+    <div id="cloud-loading-overlay" class="fixed inset-0 bg-white z-[200] flex flex-col items-center justify-center">
+        <div class="w-20 h-20 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin mb-6"></div>
+        <h1 class="text-2xl font-black text-gray-800 mb-2">正在同步雲端資料庫...</h1>
+        <p class="text-gray-500 font-medium">請稍候，正在載入商品、會員與歷史訂單</p>
+    </div>
+
+    <!-- 🟢 系統登入畫面 -->
+    <div id="system-login-overlay" class="fixed inset-0 bg-gray-900 z-[100] hidden flex items-center justify-center backdrop-blur-sm">
+        <div class="bg-white p-6 md:p-8 rounded-3xl shadow-2xl w-11/12 max-w-sm flex flex-col items-center">
+            <div class="w-32 h-32 mb-4 bg-white rounded-full flex items-center justify-center shadow-lg overflow-hidden border-4 border-gray-100">
+                <img src="83684.jpg" alt="AURA Logo" class="w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/150'">
+            </div>
+            <h1 class="text-2xl md:text-3xl font-black text-gray-800 mb-2">AURA POS 系統</h1>
+            <p class="text-sm text-gray-500 mb-6 font-medium">請輸入收銀員專屬帳號密碼</p>
+            
+            <div class="w-full mb-4 relative">
+                <label class="block text-gray-700 font-bold mb-2 text-sm">收銀員帳號</label>
+                <i class="fa-solid fa-user absolute left-4 top-[42px] text-gray-400"></i>
+                <input type="text" id="sys-username" placeholder="001 ~ 005" class="w-full p-3 pl-10 border border-gray-300 rounded-xl text-lg focus:outline-none focus:border-blue-500 bg-gray-50 focus:bg-white transition-all">
+            </div>
+            
+            <div class="w-full mb-8 relative">
+                <label class="block text-gray-700 font-bold mb-2 text-sm">密碼</label>
+                <i class="fa-solid fa-lock absolute left-4 top-[42px] text-gray-400"></i>
+                <input type="password" id="sys-password" placeholder="001 ~ 005" class="w-full p-3 pl-10 border border-gray-300 rounded-xl text-lg focus:outline-none focus:border-blue-500 bg-gray-50 focus:bg-white transition-all">
+            </div>
+            
+            <button onclick="systemLogin()" class="w-full py-4 rounded-xl font-bold text-white bg-gray-900 hover:bg-black shadow-lg shadow-gray-400 click-effect text-lg flex items-center justify-center gap-2 transition-colors">
+                <i class="fa-solid fa-right-to-bracket"></i> 登入系統
+            </button>
+        </div>
+    </div>
+
+    <!-- 🟢 系統導覽列 -->
+    <nav class="w-full md:w-24 bg-gray-900 text-gray-400 flex md:flex-col items-center py-2 md:py-6 md:gap-8 shrink-0 z-30 justify-around md:justify-start pb-safe">
+        <div class="bg-white p-1 rounded-full shadow-lg hidden md:block overflow-hidden w-12 h-12 border-2 border-gray-700">
+            <img src="83684.jpg" alt="AURA Logo" class="w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/150'">
+        </div>
+        
+        <button onclick="switchView('pos')" id="nav-pos" class="nav-btn text-white relative flex flex-col items-center gap-1 p-2 w-20 md:w-full transition-colors">
+            <div class="p-2 rounded-xl bg-gray-800 shadow-inner hover:bg-gray-700 transition-all"><i class="fa-solid fa-desktop text-xl"></i></div>
+            <span class="text-[10px] md:text-xs font-medium mt-1">POS前台</span>
+        </button>
+        
+        <button onclick="switchView('kds')" id="nav-kds" class="nav-btn relative flex flex-col items-center gap-1 p-2 w-20 md:w-full transition-colors hover:text-white">
+            <div class="p-2 rounded-xl hover:bg-gray-800 transition-all"><i class="fa-solid fa-fire-burner text-xl"></i></div>
+            <span class="text-[10px] md:text-xs font-medium mt-1">內場看單</span>
+            <span id="kds-badge" class="hidden absolute top-1 right-2 md:right-4 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-gray-900">0</span>
+        </button>
+        
+        <button onclick="switchView('orders')" id="nav-orders" class="nav-btn relative flex flex-col items-center gap-1 p-2 w-20 md:w-full transition-colors hover:text-white">
+            <div class="p-2 rounded-xl hover:bg-gray-800 transition-all"><i class="fa-solid fa-clipboard-list text-xl"></i></div>
+            <span class="text-[10px] md:text-xs font-medium mt-1">歷史紀錄</span>
+        </button>
+    </nav>
+
+    <!-- 🟢 主要內容區塊 -->
+    <main class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+
+        <!-- ================= 視圖 1：POS 點餐系統 ================= -->
+        <div id="view-pos" class="view-section flex flex-1 flex-col md:flex-row h-full w-full animate-fadeIn">
+            
+            <div class="flex-1 flex flex-col bg-white border-r border-gray-200 z-10 relative overflow-hidden">
+                <header class="bg-gray-900 text-white p-3 md:p-4 shadow-sm flex justify-between items-center z-10 shrink-0">
+                    <div class="flex items-center gap-3">
+                        <h1 class="text-base md:text-xl font-bold tracking-wider">AURA 雲端連線版</h1>
+                        <button onclick="connectBluetoothPrinter()" class="bg-gray-700 hover:bg-gray-600 text-white text-xs px-3 py-1.5 rounded-full flex items-center gap-2 transition-colors border border-gray-500 hidden md:flex">
+                            <i class="fa-brands fa-bluetooth"></i> <span id="bt-status">連接藍牙出單機</span>
+                        </button>
+                    </div>
+                    <div id="cashier-name-display" class="text-[10px] md:text-sm bg-gray-800 px-3 py-1.5 rounded-full flex items-center gap-2 shadow-inner border border-gray-600">
+                        <i class="fa-solid fa-user"></i> 收銀員：未登入
+                    </div>
+                </header>
+
+                <div id="category-tabs" class="flex overflow-x-auto no-scrollbar p-3 md:p-4 gap-3 bg-gray-50 border-b shrink-0 items-center">
+                    <!-- 分類按鈕 -->
+                </div>
+
+                <div class="flex-1 overflow-y-auto p-4 bg-gray-50/30 pb-6">
+                    <div id="product-grid" class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
+                        <!-- 商品卡片 -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="w-full md:w-80 lg:w-96 flex flex-col bg-white shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.05)] z-20 shrink-0 h-[45dvh] md:h-full border-t border-gray-200 md:border-t-0">
+                <div class="p-3 md:p-4 border-b border-gray-100 bg-white shrink-0" id="member-area">
+                    <button onclick="openMemberModal()" class="w-full py-2 md:py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 text-sm md:text-base font-medium hover:border-gray-800 hover:text-gray-900 flex items-center justify-center gap-2 transition-colors">
+                        <i class="fa-regular fa-user"></i> 綁定會員 / 讀取條碼
+                    </button>
+                </div>
+                
+                <div id="cart-items" class="flex-1 overflow-y-auto p-3 md:p-4 bg-gray-50/50 space-y-3">
+                    <div class="h-full flex flex-col items-center justify-center text-gray-300 gap-3">
+                        <i class="fa-solid fa-cart-shopping text-4xl md:text-5xl mb-2"></i>
+                        <p class="text-xs md:text-sm font-medium">尚未選擇商品</p>
+                    </div>
+                </div>
+                
+                <div class="p-3 md:p-4 border-t border-gray-100 bg-white shrink-0 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.02)]">
+                    <div class="flex justify-between items-end mb-3 md:mb-4">
+                        <span class="text-gray-500 font-medium text-sm md:text-base">總計</span>
+                        <span id="cart-total" class="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">$0</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="clearCart()" class="px-4 py-3 md:py-4 rounded-xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors click-effect text-sm md:text-base">清空</button>
+                        <button onclick="processCheckout()" id="checkout-btn" class="flex-1 py-3 md:py-4 rounded-xl font-bold text-white bg-gray-900 hover:bg-black opacity-50 cursor-not-allowed flex items-center justify-center gap-2 transition-colors click-effect shadow-md shadow-gray-400 text-base md:text-lg">
+                            <i class="fa-solid fa-cash-register"></i> 結帳付款
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= 視圖 2 & 3 ================= -->
+        <div id="view-kds" class="view-section hidden flex-1 flex-col h-full bg-gray-100 p-4 md:p-8 overflow-y-auto animate-fadeIn">
+            <h2 class="text-xl md:text-3xl font-bold text-gray-800 mb-6 flex items-center gap-3"><i class="fa-solid fa-fire-burner text-gray-900"></i> 內場看單顯示系統</h2>
+            <div id="kds-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 pb-6"></div>
+        </div>
+
+        <div id="view-orders" class="view-section hidden flex-1 flex-col h-full bg-gray-100 p-4 md:p-8 overflow-y-auto animate-fadeIn">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl md:text-3xl font-bold text-gray-800 flex items-center gap-3"><i class="fa-solid fa-clipboard-list text-gray-900"></i> 歷史帳務與訂單</h2>
+                <div class="flex gap-2">
+                    <button onclick="fetchDataFromCloud()" class="px-4 py-2 md:py-3 bg-gray-700 text-white rounded-xl font-bold hover:bg-gray-800 transition-colors flex items-center gap-2 shadow-sm click-effect text-sm md:text-base">
+                        <i class="fa-solid fa-rotate"></i> <span class="hidden md:inline">重整資料</span>
+                    </button>
+                    <button onclick="downloadOrdersCSV()" class="px-4 py-2 md:py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-colors flex items-center gap-2 shadow-sm click-effect text-sm md:text-base">
+                        <i class="fa-solid fa-file-csv text-lg"></i> <span class="hidden md:inline">匯出對帳表</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 財務面板 -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6">
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between">
+                    <div><p class="text-xs text-gray-500 font-bold mb-1">實收總現金(含儲值)</p><h3 id="summary-actual-cash" class="text-xl md:text-2xl font-black text-green-600">$0</h3></div>
+                    <div class="w-10 h-10 rounded-full bg-green-50 text-green-500 flex items-center justify-center text-lg"><i class="fa-solid fa-sack-dollar"></i></div>
+                </div>
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between">
+                    <div><p class="text-xs text-gray-500 font-bold mb-1">儲值金消耗</p><h3 id="summary-stored-used" class="text-xl md:text-2xl font-black text-orange-500">$0</h3></div>
+                    <div class="w-10 h-10 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center text-lg"><i class="fa-solid fa-coins"></i></div>
+                </div>
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between">
+                    <div><p class="text-xs text-gray-500 font-bold mb-1">總營業額</p><h3 id="summary-total-sales" class="text-xl md:text-2xl font-black text-gray-800">$0</h3></div>
+                    <div class="w-10 h-10 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center text-lg"><i class="fa-solid fa-chart-line"></i></div>
+                </div>
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between">
+                    <div><p class="text-xs text-gray-500 font-bold mb-1">本日來客數</p><h3 id="summary-customer-count" class="text-xl md:text-2xl font-black text-gray-800">0</h3></div>
+                    <div class="w-10 h-10 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center text-lg"><i class="fa-solid fa-users"></i></div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-6">
+                <div class="overflow-x-auto w-full">
+                    <table class="w-full text-left border-collapse min-w-[600px]">
+                        <thead>
+                            <tr class="bg-gray-50 border-b border-gray-200 text-gray-600 text-sm">
+                                <th class="p-3 md:p-5 font-bold">單號</th><th class="p-3 md:p-5 font-bold">類型</th><th class="p-3 md:p-5 font-bold">時間</th>
+                                <th class="p-3 md:p-5 font-bold">對象</th><th class="p-3 md:p-5 font-bold text-right">實收現金</th>
+                                <th class="p-3 md:p-5 font-bold text-right">備註</th><th class="p-3 md:p-5 font-bold text-center">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-table"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ================= 彈跳視窗 ================= -->
+    
+    <!-- (會員登入) -->
+    <div id="modal-member" class="fixed inset-0 bg-gray-900/60 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl p-6 relative">
+            <button onclick="closeModal('modal-member')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800 text-2xl"><i class="fa-solid fa-xmark"></i></button>
+            <h2 class="text-xl font-bold mb-4">會員登入</h2>
+            <input type="tel" id="member-phone" readonly class="w-full p-4 border rounded-xl text-xl text-center mb-4 bg-gray-50 tracking-widest font-bold" placeholder="請輸入手機號碼">
+            <div class="grid grid-cols-3 gap-2 mb-4">
+                <button onclick="typePhone('1')" class="py-3 bg-gray-100 rounded-xl text-lg font-bold hover:bg-gray-200">1</button>
+                <button onclick="typePhone('2')" class="py-3 bg-gray-100 rounded-xl text-lg font-bold hover:bg-gray-200">2</button>
+                <button onclick="typePhone('3')" class="py-3 bg-gray-100 rounded-xl text-lg font-bold hover:bg-gray-200">3</button>
+                <button onclick="typePhone('4')" class="py-3 bg-gray-100 rounded-xl text-lg font-bold hover:bg-gray-200">4</button>
+                <button onclick="typePhone('5')" class="py-3 bg-gray-100 rounded-xl text-lg font-bold hover:bg-gray-200">5</button>
+                <button onclick="typePhone('6')" class="py-3 bg-gray-100 rounded-xl text-lg font-bold hover:bg-gray-200">6</button>
+                <button onclick="typePhone('7')" class="py-3 bg-gray-100 rounded-xl text-lg font-bold hover:bg-gray-200">7</button>
+                <button onclick="typePhone('8')" class="py-3 bg-gray-100 rounded-xl text-lg font-bold hover:bg-gray-200">8</button>
+                <button onclick="typePhone('9')" class="py-3 bg-gray-100 rounded-xl text-lg font-bold hover:bg-gray-200">9</button>
+                <button onclick="clearPhone()" class="py-3 bg-red-50 text-red-500 font-bold rounded-xl hover:bg-red-100">清除</button>
+                <button onclick="typePhone('0')" class="py-3 bg-gray-100 rounded-xl text-lg font-bold hover:bg-gray-200">0</button>
+                <button onclick="backspacePhone()" class="py-3 bg-gray-100 font-bold rounded-xl hover:bg-gray-200"><i class="fa-solid fa-delete-left"></i></button>
+            </div>
+            <button onclick="loginMember()" class="w-full mb-3 py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-black">確認登入</button>
+            <button onclick="openRegisterModal()" class="w-full py-3 border border-gray-300 text-gray-700 rounded-xl font-bold hover:bg-gray-50">註冊新會員</button>
+        </div>
+    </div>
+
+    <!-- (註冊會員) -->
+    <div id="modal-register" class="fixed inset-0 bg-gray-900/60 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl p-6 relative">
+            <button onclick="closeModal('modal-register')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800 text-2xl"><i class="fa-solid fa-xmark"></i></button>
+            <h2 class="text-xl font-bold mb-4">註冊新會員</h2>
+            <div class="space-y-4">
+                <div><label class="font-bold text-sm">手機號碼</label><input type="tel" id="reg-phone" class="w-full p-3 border rounded-xl bg-gray-50"></div>
+                <div><label class="font-bold text-sm">會員姓名</label><input type="text" id="reg-name" class="w-full p-3 border rounded-xl bg-gray-50"></div>
+                <div class="flex gap-4">
+                    <div class="flex-1"><label class="font-bold text-sm">等級</label><select id="reg-level" class="w-full p-3 border rounded-xl"><option>一般會員</option><option>銀卡會員</option><option>金卡會員</option><option>鑽石會員</option></select></div>
+                    <div class="flex-1"><label class="font-bold text-sm">初始儲值金</label><input type="number" id="reg-money" value="0" class="w-full p-3 border rounded-xl"></div>
+                </div>
+            </div>
+            <button onclick="submitRegister()" class="w-full mt-6 py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700">確認註冊</button>
+        </div>
+    </div>
+    
+    <!-- (儲值) -->
+    <div id="modal-topup" class="fixed inset-0 bg-gray-900/60 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-xs relative">
+            <h2 class="text-xl font-bold mb-2">會員儲值金加值</h2>
+            <div class="mb-4 text-sm text-gray-600">為 <span id="topup-name-display" class="font-bold"></span> 加值</div>
+            <div class="relative mb-4">
+                <span class="absolute left-3 top-3 text-gray-500 font-bold">$</span>
+                <input type="number" id="topup-amount" placeholder="金額" class="w-full pl-8 p-3 border border-gray-300 rounded-xl font-bold text-xl">
+            </div>
+            <div class="flex gap-2">
+                <button onclick="closeModal('modal-topup')" class="flex-1 py-3 bg-gray-100 rounded-xl font-bold hover:bg-gray-200">取消</button>
+                <button onclick="submitTopUp()" class="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold">確認加值</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- (新增商品) -->
+    <div id="modal-add-product" class="fixed inset-0 bg-gray-900/60 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col transform transition-all">
+            <div class="px-5 py-4 border-b flex justify-between items-center bg-gray-50">
+                <h2 class="text-lg md:text-xl font-bold text-gray-800"><i class="fa-solid fa-layer-group mr-2 text-gray-900"></i>批次新增商品 (最多一次 5 筆)</h2>
+                <button onclick="closeModal('modal-add-product')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div class="p-5 flex flex-col gap-3">
+                <div id="batch-input-container" class="space-y-3 max-h-[40vh] overflow-y-auto"></div>
+                <button onclick="submitBatchAdd()" class="w-full mt-2 py-3 md:py-4 rounded-xl font-bold text-white bg-gray-900 hover:bg-black shadow-lg shadow-gray-400">確認送出至雲端</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- (結帳確認) -->
+    <div id="modal-checkout-confirm" class="fixed inset-0 bg-gray-900/60 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6 relative">
+            <button onclick="closeModal('modal-checkout-confirm')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800 text-2xl"><i class="fa-solid fa-xmark"></i></button>
+            <h2 class="text-xl font-bold mb-4">結帳付款細節</h2>
+            <div id="checkout-member-info" class="text-center mb-2"></div>
+            <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 mb-4">
+                <div class="flex justify-between mb-2 text-gray-600"><span>商品總計</span><span id="co-total" class="font-bold text-gray-800"></span></div>
+                <div class="flex justify-between mb-2 text-green-600"><span id="co-discount-desc">無優惠</span><span id="co-discount">-$0</span></div>
+                <div class="flex justify-between text-orange-500 py-2 border-t border-b border-gray-200 mb-2">
+                    <div class="flex flex-col">
+                        <span class="font-bold">點數折抵</span>
+                        <span class="text-xs">可用 <span id="co-max-points" class="font-bold">0</span> 點</span>
+                    </div>
+                    <input type="number" id="co-points-input" oninput="recalculateCheckoutPayment()" class="w-16 p-1 text-right border border-orange-300 rounded font-bold" value="0" min="0">
+                </div>
+                <div class="flex justify-between font-bold text-xl text-gray-900 mt-2 mb-2"><span>應付總額</span><span id="co-final-total"></span></div>
+                <div class="border-t border-gray-200 pt-2 mt-2">
+                    <div class="flex justify-between text-sm text-gray-600 mb-2"><span>儲值金扣抵</span><span id="co-stored-deduct" class="text-red-500 font-bold"></span></div>
+                    <div class="flex justify-between font-bold text-gray-800 border-b pb-2 mb-2"><span>應收現金</span><span id="co-cash-needed"></span></div>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-bold">收取現金</span>
+                        <input type="number" id="co-cash-input" oninput="recalculateCheckoutPayment()" class="w-24 p-2 border border-gray-300 rounded text-right font-bold" placeholder="0">
+                    </div>
+                    <div class="flex justify-between font-bold text-green-600 text-lg mt-1"><span>找零</span><span id="co-change">$0</span></div>
+                </div>
+            </div>
+            <button id="btn-finalize-checkout" onclick="finalizeCheckout()" class="w-full py-4 bg-gray-900 text-white rounded-xl font-bold hover:bg-black shadow-lg">確認結帳並送出</button>
+        </div>
+    </div>
+
+    <!-- 結帳/寫入處理中 Modal -->
+    <div id="modal-processing" class="fixed inset-0 bg-gray-900/80 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl w-full max-w-sm p-8 flex flex-col items-center text-center shadow-2xl">
+            <div id="process-spinner" class="w-16 h-16 border-4 border-gray-200 border-t-gray-900 rounded-full animate-spin mb-6"></div>
+            <i id="process-success" class="fa-solid fa-circle-check text-6xl text-green-500 mb-6 hidden"></i>
+            <h2 id="process-title" class="text-2xl font-bold text-gray-800 mb-2">與雲端同步中...</h2>
+            <p id="process-desc" class="text-gray-500"></p>
+            <div id="process-action-buttons" class="hidden w-full flex gap-3 mt-6">
+                <button onclick="closeModal('modal-processing')" class="flex-1 py-3 bg-gray-100 rounded-xl font-bold hover:bg-gray-200">關閉</button>
+                <button id="process-print-btn" class="flex-1 py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-black shadow-md flex justify-center items-center gap-2"><i class="fa-solid fa-print"></i> 列印收據</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 列印版模 -->
+    <div id="print-receipt-template" class="hidden"></div>
+
+    <!-- ================= JavaScript 核心邏輯 ================= -->
+    <script>
+        // 🌟 綁定您最新的 API 網址
+        const API_URL = "https://script.google.com/macros/s/AKfycbyZYizF4HCcasN4uhD8a98BsvA9TXaB8p3OhMrdKbfd24FmMLISp8VE9Qr0rfJYWxc2nA/exec";
+        
+        let CATEGORIES = [
+            { id: 'c1', name: '飲品', icon: 'fa-mug-hot' },
+            { id: 'c2', name: '主餐', icon: 'fa-burger' },
+            { id: 'c3', name: '副餐與點心', icon: 'fa-cookie-bite' },
+            { id: 'c4', name: '周邊商品', icon: 'fa-bag-shopping' }
+        ];
+
+        let PRODUCTS = [];
+        let members = [];
+        let orders = [];
+        
+        let currentCategory = 'c1';
+        let cart = [];
+        let currentMember = null;
+        let phoneInputStr = '';
+        let topUpPhone = null;
+        let currentCashier = '';
+        let checkoutState = { total:0, levelDiscount:0, maxPoints:0, pointsUsed:0, storedDeducted:0, cashNeeded:0, cashReceived:0, change:0 };
+
+        // 🌟 網頁載入即同步資料
+        window.onload = () => {
+            fetchDataFromCloud();
+        };
+
+        // --- 核心：與雲端 API 溝通 ---
+        async function fetchDataFromCloud() {
+            document.getElementById('cloud-loading-overlay').classList.remove('hidden');
+            try {
+                const res = await fetch(API_URL);
+                if (!res.ok) throw new Error("網路連線錯誤");
+                
+                const data = await res.json();
+                
+                if (data.status === 'success') {
+                    // 將資料全面灌入系統狀態
+                    PRODUCTS = data.products || [];
+                    members = data.members || [];
+                    orders = data.orders || [];
+                    
+                    renderCategories();
+                    renderProducts();
+                    updateCartUI();
+                    updateKDS();
+                    updateHistory();
+                    
+                    document.getElementById('cloud-loading-overlay').classList.add('hidden');
+                    document.getElementById('system-login-overlay').classList.remove('hidden'); 
+                } else {
+                    throw new Error(data.message || "回傳異常");
+                }
+            } catch (err) {
+                console.error(err);
+                alert("無法連線到 Google 試算表，請確認您的 API 網址是否正確且有重新發布！\n錯誤訊息：" + err.message);
+                document.getElementById('cloud-loading-overlay').classList.add('hidden'); // 隱藏以便能看到錯誤畫面
+            }
+        }
+
+        async function postToCloud(payload) {
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                });
+                return await response.json();
+            } catch (error) {
+                console.error("Cloud Error:", error);
+                return { status: 'error', msg: error.message };
+            }
+        }
+
+        // --- UI 操作邏輯 ---
+        function systemLogin() {
+            const user = document.getElementById('sys-username').value.trim();
+            if (['001', '002', '003', '004', '005'].includes(user)) {
+                currentCashier = user;
+                document.getElementById('cashier-name-display').innerHTML = `<i class="fa-solid fa-user-check"></i> 收銀員：${currentCashier}`;
+                document.getElementById('system-login-overlay').classList.add('hidden');
+            } else { alert('帳號或密碼錯誤！(提示: 測試帳號請填 001)'); }
+        }
+
+        function switchView(id) {
+            document.querySelectorAll('.view-section').forEach(v => v.classList.add('hidden'));
+            document.getElementById('view-' + id).classList.remove('hidden');
+            
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('text-white'); btn.classList.add('text-gray-400');
+                btn.querySelector('div').classList.remove('bg-gray-800', 'shadow-inner');
+            });
+            const activeBtn = document.getElementById(`nav-${id}`);
+            activeBtn.classList.remove('text-gray-400'); activeBtn.classList.add('text-white');
+            activeBtn.querySelector('div').classList.add('bg-gray-800', 'shadow-inner');
+        }
+
+        function renameCategory(id, event) {
+            event.stopPropagation(); 
+            const cat = CATEGORIES.find(c => c.id === id);
+            if(cat) {
+                const newName = prompt(`請輸入「${cat.name}」的新分類名稱：`, cat.name);
+                if(newName && newName.trim() !== '') {
+                    cat.name = newName.trim();
+                    renderCategories();
+                }
+            }
+        }
+
+        function renderCategories() {
+            document.getElementById('category-tabs').innerHTML = CATEGORIES.map(c => {
+                const isActive = c.id === currentCategory;
+                const activeClass = isActive ? "bg-gray-900 text-white shadow-gray-400" : "bg-white text-gray-600 hover:bg-gray-100 border-gray-200";
+                return `
+                <button onclick="setCategory('${c.id}')" class="flex items-center gap-2 px-5 py-3 rounded-xl font-bold whitespace-nowrap border ${activeClass} group">
+                    <i class="fa-solid ${c.icon}"></i> <span>${c.name}</span>
+                    <i class="fa-solid fa-pen ml-2 text-[10px] opacity-30 group-hover:opacity-100" onclick="renameCategory('${c.id}', event)" title="修改分類名稱"></i>
+                </button>`;
+            }).join('') + `
+                <button onclick="openAddProductModal()" class="flex items-center gap-2 px-5 py-3 rounded-xl font-bold whitespace-nowrap border border-dashed border-gray-300 bg-gray-50 text-gray-500 hover:bg-white hover:text-gray-900 ml-2">
+                    <i class="fa-solid fa-plus"></i> 新增商品
+                </button>
+            `;
+        }
+
+        function setCategory(id) { currentCategory = id; renderCategories(); renderProducts(); }
+
+        function renderProducts() {
+            document.getElementById('product-grid').innerHTML = PRODUCTS.filter(p => p.cat === currentCategory).map(p => `
+                <div onclick="addToCart('${p.id}')" class="bg-white p-4 rounded-xl border cursor-pointer hover:border-gray-900 group relative h-32 md:h-40 flex flex-col justify-between shadow-sm">
+                    ${p.isNew ? `<div class="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-bl-xl rounded-tr-xl shadow-sm z-10">新商品</div>` : ''}
+                    <button onclick="event.stopPropagation(); deleteProduct('${p.id}')" class="absolute top-2 left-2 w-7 h-7 flex items-center justify-center bg-gray-100 text-gray-400 hover:bg-red-500 hover:text-white rounded-full transition-colors z-20">
+                        <i class="fa-solid fa-trash text-xs"></i>
+                    </button>
+                    <div class="mt-4 md:mt-2">
+                        <div class="text-[10px] md:text-xs text-gray-400 font-bold pl-8">庫存: ${p.stock}</div>
+                        <div class="font-bold text-gray-800 text-sm md:text-lg mt-1 group-hover:text-gray-900 pl-1">${p.name}</div>
+                    </div>
+                    <div class="flex justify-between items-end">
+                        <div class="text-xl font-black text-gray-800 pl-1">$${p.price}</div>
+                        <div class="bg-gray-50 text-gray-400 group-hover:bg-gray-200 group-hover:text-gray-900 w-8 h-8 rounded-full flex items-center justify-center"><i class="fa-solid fa-plus"></i></div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function deleteProduct(productId) {
+            if (confirm('確定要從目前菜單中移除此商品嗎？\n(提示：這僅會移除本機目前畫面顯示，若要永久刪除請至雲端試算表刪除)')) {
+                const index = PRODUCTS.findIndex(p => p.id === productId);
+                if (index > -1) { PRODUCTS.splice(index, 1); renderProducts(); }
+            }
+        }
+
+        // --- 購物車功能 ---
+        function addToCart(pid) {
+            const p = PRODUCTS.find(x => x.id === pid);
+            const item = cart.find(x => x.id === pid);
+            if(item) item.qty++; else cart.push({...p, qty: 1, cartId: Date.now()});
+            updateCartUI();
+        }
+        function updateItemQty(cid, delta) {
+            const item = cart.find(x => x.cartId === cid);
+            if(item) { item.qty += delta; if(item.qty<=0) cart = cart.filter(x => x.cartId !== cid); }
+            updateCartUI();
+        }
+        function clearCart() { cart=[]; currentMember=null; updateMemberUI(); updateCartUI(); }
+
+        function updateCartUI() {
+            let t = 0;
+            const container = document.getElementById('cart-items');
+            if(cart.length===0) {
+                container.innerHTML = `<div class="text-center text-gray-400 mt-10"><i class="fa-solid fa-cart-shopping text-4xl mb-2 opacity-30"></i><p>尚未選擇商品</p></div>`;
+                document.getElementById('checkout-btn').classList.add('opacity-50', 'cursor-not-allowed');
+            } else {
+                container.innerHTML = cart.map(i => {
+                    t += i.price * i.qty;
+                    return `<div class="bg-white p-3 rounded-xl border flex justify-between items-center mb-2 shadow-sm relative group">
+                        <div class="pr-6"><div class="font-bold text-sm text-gray-800">${i.name}</div><div class="text-sm font-bold text-gray-600">$${i.price*i.qty}</div></div>
+                        <div class="flex gap-2 items-center bg-gray-50 p-1 rounded-lg border"><button onclick="updateItemQty(${i.cartId}, -1)" class="w-6 h-6 bg-white rounded shadow-sm text-gray-600 font-bold hover:text-gray-900">-</button><span class="w-6 text-center font-bold">${i.qty}</span><button onclick="updateItemQty(${i.cartId}, 1)" class="w-6 h-6 bg-white rounded shadow-sm text-gray-600 font-bold hover:text-gray-900">+</button></div>
+                        <button onclick="updateItemQty(${i.cartId}, -99)" class="absolute top-2 right-2 text-gray-300 hover:text-red-500"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>`;
+                }).join('');
+                document.getElementById('checkout-btn').classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+            document.getElementById('cart-total').innerText = `$${t}`;
+        }
+
+        // --- 會員邏輯 ---
+        function openMemberModal(){ document.getElementById('modal-member').classList.remove('hidden'); phoneInputStr=''; updatePhoneDisplay(); }
+        function closeModal(id){ document.getElementById(id).classList.add('hidden'); }
+        function typePhone(n){ if(phoneInputStr.length<10) phoneInputStr+=n; updatePhoneDisplay(); }
+        function backspacePhone(){ phoneInputStr = phoneInputStr.slice(0,-1); updatePhoneDisplay(); }
+        function clearPhone(){ phoneInputStr=''; updatePhoneDisplay(); }
+        function updatePhoneDisplay(){ document.getElementById('member-phone').value=phoneInputStr; }
+        
+        function loginMember(){
+            const m = members.find(x => x.phone === phoneInputStr);
+            if(m){ currentMember=m; updateMemberUI(); closeModal('modal-member'); }
+            else { alert('查無此會員！您也可以點選「註冊新會員」。'); }
+        }
+
+        function openRegisterModal() {
+            closeModal('modal-member');
+            document.getElementById('modal-register').classList.remove('hidden');
+            document.getElementById('reg-phone').value = phoneInputStr; 
+            document.getElementById('reg-name').value = '';
+            document.getElementById('reg-money').value = '0';
+        }
+
+        function submitRegister() {
+            const phone = document.getElementById('reg-phone').value.trim();
+            const name = document.getElementById('reg-name').value.trim();
+            const level = document.getElementById('reg-level').value;
+            const money = parseInt(document.getElementById('reg-money').value) || 0;
+
+            if(!phone || !name) { alert("請填寫完整！"); return; }
+            if(members.some(m => m.phone === phone)) { alert("此手機已經註冊過囉！"); return; }
+
+            const newMember = { phone, name, points: 0, level, money };
+            members.push(newMember); // 存入本地
+            
+            alert("註冊成功！系統已自動為您登入。\n(請注意：新會員註冊目前尚未同步寫入雲端，建議您後續手動於 Google 試算表補上。)");
+            currentMember = newMember; updateMemberUI(); closeModal('modal-register');
+        }
+
+        function openTopUpModal(phone){
+            topUpPhone = phone;
+            document.getElementById('topup-name-display').innerText = members.find(x=>x.phone===phone).name;
+            document.getElementById('modal-topup').classList.remove('hidden');
+        }
+
+        async function submitTopUp() {
+            const amount = parseInt(document.getElementById('topup-amount').value);
+            if(amount>0) {
+                const member = members.find(m => m.phone === topUpPhone);
+                if(member) {
+                    closeModal('modal-topup');
+                    showProcessing('正在寫入儲值金與同步雲端...');
+
+                    member.money = (Number(member.money) || 0) + amount; 
+                    
+                    const topupId = 'T' + Math.floor(1000 + Math.random() * 9000);
+                    const orderPayload = {
+                        id: topupId, type: 'topup', time: new Date().toLocaleTimeString('zh-TW', {hour:'2-digit', minute:'2-digit'}),
+                        items: [{name: '會員儲值金加值', qty: 1, price: amount}],
+                        total: amount, originalTotal: amount, discount: 0, pointsUsed: 0, deductStored: 0, paidCash: amount,
+                        member: `${member.name} (${member.level})`, cashier: currentCashier || '未登入', status: 'completed'
+                    };
+
+                    orders.push(orderPayload);
+                    if(currentMember && currentMember.phone === member.phone) { currentMember = member; updateMemberUI(); }
+                    updateHistory();
+
+                    // 🌟 呼叫 API
+                    await postToCloud({ action: 'topup', order: orderPayload, memberPhone: member.phone, pointsDelta: 0, moneyDelta: amount });
+
+                    finishProcessing('儲值完成！', `成功為 ${member.name} 加值 $${amount}`);
+                    document.getElementById('process-print-btn').onclick = () => { printReceipt(orderPayload); };
+                }
+            } else { alert("請輸入正確金額"); }
+        }
+
+        function updateMemberUI(){
+            const el = document.getElementById('member-area');
+            if(currentMember) {
+                el.innerHTML = `<div class="bg-gray-100 p-3 rounded-xl flex justify-between items-center border">
+                    <div>
+                        <div class="font-bold text-gray-800 flex items-center gap-2"><i class="fa-solid fa-crown text-yellow-500"></i> ${currentMember.name} <span class="text-[10px] bg-gray-800 text-white px-2 py-0.5 rounded-full">${currentMember.level}</span></div>
+                        <div class="text-xs text-gray-600 mt-1 font-bold">點數: <span class="text-orange-500">${currentMember.points}</span> | 餘額: $${currentMember.money||0}</div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="openTopUpModal('${currentMember.phone}')" class="bg-gray-800 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-black transition-colors click-effect shadow-sm">加值</button>
+                        <button onclick="currentMember=null; updateMemberUI(); processCheckout();" class="w-7 h-7 bg-white text-gray-400 rounded-full hover:text-red-500 border"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                </div>`;
+            } else {
+                el.innerHTML = `<button onclick="openMemberModal()" class="w-full py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 font-bold hover:bg-gray-100 click-effect"><i class="fa-regular fa-user mr-2"></i>綁定會員 / 查詢</button>`;
+            }
+        }
+
+        function openAddProductModal() {
+            const container = document.getElementById('batch-input-container');
+            let html = '';
+            const opts = CATEGORIES.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+            for(let i=0; i<5; i++) {
+                html += `<div class="flex gap-2 mb-2 bg-gray-50 p-2 rounded-xl border items-center">
+                    <span class="text-gray-400 font-bold text-sm w-4">${i+1}.</span>
+                    <input type="text" id="b-name-${i}" placeholder="商品名稱" class="w-full p-2 border border-gray-300 rounded-lg">
+                    <input type="number" id="b-price-${i}" placeholder="$ 價格" class="w-24 p-2 border border-gray-300 rounded-lg font-bold">
+                    <select id="b-cat-${i}" class="w-28 p-2 border border-gray-300 rounded-lg font-bold text-gray-700">${opts}</select>
+                </div>`;
+            }
+            container.innerHTML = html;
+            document.getElementById('modal-add-product').classList.remove('hidden');
+        }
+
+        async function submitBatchAdd() {
+            let newProds = [];
+            let count = 0;
+            for(let i=0; i<5; i++) {
+                const name = document.getElementById(`b-name-${i}`).value.trim();
+                const priceStr = document.getElementById(`b-price-${i}`).value;
+                const cat = document.getElementById(`b-cat-${i}`).value;
+                if(name && priceStr !== '') {
+                    const price = parseInt(priceStr);
+                    if(!isNaN(price)){
+                        newProds.push({ id: 'p'+Date.now()+'_'+count+'_'+Math.floor(Math.random()*100), cat, name, price, stock: 100, isNew: true });
+                        count++;
+                    }
+                }
+            }
+            if(count > 0) {
+                closeModal('modal-add-product');
+                showProcessing('正在批次將商品寫入雲端...');
+                
+                PRODUCTS.push(...newProds);
+                
+                // 🌟 呼叫 API
+                await postToCloud({ action: 'batchAdd', products: newProds });
+                
+                finishProcessing('新增成功！', `成功同步 ${count} 個商品至雲端資料庫`);
+                renderProducts();
+            } else {
+                alert("請至少填寫一個完整的商品名稱與價格！");
+            }
+        }
+
+        // --- 結帳邏輯 ---
+        function processCheckout() {
+            if(cart.length===0) return;
+            let total = cart.reduce((s, i) => s + (i.price * i.qty), 0);
+            let discount = 0;
+            let discountDesc = "無優惠";
+            
+            if (currentMember) {
+                if(currentMember.level === '銀卡會員') { discount = 5; discountDesc = "銀卡優惠: 折 $5"; }
+                else if(currentMember.level === '金卡會員') { discount = Math.ceil(total * 0.05); discountDesc = "金卡優惠: 享 95 折"; }
+                else if(currentMember.level === '鑽石會員') { discount = Math.ceil(total * 0.10); discountDesc = "鑽石優惠: 享 9 折"; }
+            }
+
+            let maxP = currentMember ? Math.min(currentMember.points || 0, total-discount) : 0;
+            checkoutState = { total, levelDiscount: discount, maxPoints: maxP, pointsUsed: 0, storedDeducted: 0, cashNeeded: 0, cashReceived: 0, change: 0 };
+            
+            document.getElementById('co-total').innerText = `$${total}`;
+            document.getElementById('co-discount').innerText = `-$${discount}`;
+            document.getElementById('co-discount-desc').innerText = discountDesc;
+            document.getElementById('co-points-input').value = 0;
+            document.getElementById('co-max-points').innerText = maxP;
+            document.getElementById('co-cash-input').value = '';
+            
+            if(currentMember) {
+                document.getElementById('checkout-member-info').innerHTML = `<span class="bg-gray-100 px-4 py-1.5 rounded-full font-bold text-sm text-gray-800"><i class="fa-solid fa-crown text-yellow-500 mr-2"></i>${currentMember.name} (${currentMember.level})</span>`;
+            } else {
+                document.getElementById('checkout-member-info').innerHTML = `<span class="bg-gray-100 px-4 py-1.5 rounded-full font-bold text-sm text-gray-500">一般訪客</span>`;
+            }
+
+            recalculateCheckoutPayment();
+            document.getElementById('modal-checkout-confirm').classList.remove('hidden');
+        }
+
+        function recalculateCheckoutPayment() {
+            let pInput = parseInt(document.getElementById('co-points-input').value) || 0;
+            if(pInput > checkoutState.maxPoints) pInput = checkoutState.maxPoints;
+            if(pInput < 0) pInput = 0;
+            checkoutState.pointsUsed = pInput;
+            document.getElementById('co-points-input').value = pInput;
+
+            let finalAmt = checkoutState.total - checkoutState.levelDiscount - checkoutState.pointsUsed;
+            if(finalAmt<0) finalAmt=0;
+            document.getElementById('co-final-total').innerText = `$${finalAmt}`;
+
+            let bal = currentMember ? (Number(currentMember.money) || 0) : 0;
+            checkoutState.storedDeducted = Math.min(bal, finalAmt);
+            document.getElementById('co-stored-deduct').innerText = `-$${checkoutState.storedDeducted}`;
+
+            checkoutState.cashNeeded = finalAmt - checkoutState.storedDeducted;
+            document.getElementById('co-cash-needed').innerText = `$${checkoutState.cashNeeded}`;
+
+            let cInput = parseInt(document.getElementById('co-cash-input').value) || 0;
+            checkoutState.cashReceived = cInput;
+            
+            const cashInputEl = document.getElementById('co-cash-input');
+            const confirmBtn = document.getElementById('btn-finalize-checkout');
+            
+            if(checkoutState.cashNeeded > 0) {
+                cashInputEl.disabled = false;
+                checkoutState.change = checkoutState.cashReceived - checkoutState.cashNeeded;
+                document.getElementById('co-change').innerText = checkoutState.change >= 0 ? `$${checkoutState.change}` : '不足';
+                document.getElementById('co-change').className = checkoutState.change >= 0 ? "text-lg mt-1 font-bold text-green-600" : "text-lg mt-1 font-bold text-red-500";
+                
+                if (checkoutState.change < 0) {
+                    confirmBtn.disabled = true; confirmBtn.classList.add('opacity-50');
+                } else {
+                    confirmBtn.disabled = false; confirmBtn.classList.remove('opacity-50');
+                }
+            } else {
+                cashInputEl.disabled = true; cashInputEl.value = '';
+                document.getElementById('co-change').innerText = '$0';
+                document.getElementById('co-change').className = "text-lg mt-1 font-bold text-gray-400";
+                confirmBtn.disabled = false; confirmBtn.classList.remove('opacity-50');
+            }
+        }
+
+        async function finalizeCheckout() {
+            closeModal('modal-checkout-confirm');
+            showProcessing('正在建立訂單並與雲端進行同步...');
+
+            let actualPaid = checkoutState.storedDeducted + checkoutState.cashNeeded;
+            let pDelta = 0, mDelta = 0;
+
+            if (currentMember) {
+                pDelta = Math.floor(actualPaid / 100) - checkoutState.pointsUsed;
+                mDelta = -checkoutState.storedDeducted;
+                currentMember.points = (Number(currentMember.points) || 0) + pDelta;
+                if(currentMember.money !== undefined) {
+                    currentMember.money = (Number(currentMember.money) || 0) + mDelta;
+                }
+            }
+
+            const orderId = Math.floor(1000 + Math.random() * 9000).toString(); 
+            const newOrder = {
+                id: orderId, type: 'order', time: new Date().toLocaleTimeString('zh-TW', {hour:'2-digit', minute:'2-digit'}),
+                items: [...cart], total: actualPaid, originalTotal: checkoutState.total,
+                discount: checkoutState.levelDiscount, pointsUsed: checkoutState.pointsUsed,
+                deductStored: checkoutState.storedDeducted, paidCash: checkoutState.cashNeeded,
+                member: currentMember ? `${currentMember.name} (${currentMember.level})` : '訪客',
+                cashier: currentCashier || '未登入', status: 'preparing'
+            };
+
+            orders.push(newOrder);
+            
+            // 🌟 呼叫 API 同步
+            await postToCloud({
+                action: 'checkout',
+                order: newOrder,
+                memberPhone: currentMember ? currentMember.phone : null,
+                pointsDelta: pDelta,
+                moneyDelta: mDelta
+            });
+
+            finishProcessing('結帳成功！', `單號 #${orderId} 已傳送至內場廚房及雲端紀錄`);
+            document.getElementById('process-print-btn').onclick = () => printReceipt(newOrder);
+
+            cart = [];
+            currentMember = null;
+            updateMemberUI();
+            updateCartUI();
+            updateKDS();
+            updateHistory();
+        }
+
+        // --- 處理中動畫切換 ---
+        function showProcessing(text) {
+            document.getElementById('process-spinner').classList.remove('hidden');
+            document.getElementById('process-success').classList.add('hidden');
+            document.getElementById('process-action-buttons').classList.add('hidden');
+            document.getElementById('process-title').innerText = '系統處理中...';
+            document.getElementById('process-desc').innerText = text;
+            document.getElementById('modal-processing').classList.remove('hidden');
+        }
+        function finishProcessing(title, desc) {
+            document.getElementById('process-spinner').classList.add('hidden');
+            document.getElementById('process-success').classList.remove('hidden');
+            document.getElementById('process-title').innerText = title;
+            document.getElementById('process-desc').innerText = desc;
+            document.getElementById('process-action-buttons').classList.remove('hidden');
+            document.getElementById('process-action-buttons').classList.add('flex');
+        }
+
+        // --- 內場與歷史邏輯 ---
+        function updateKDS(){
+            const prep = orders.filter(o=>o.type==='order' && o.status==='preparing');
+            const badge = document.getElementById('kds-badge');
+            if(prep.length > 0) { badge.innerText = prep.length; badge.classList.remove('hidden'); } else { badge.classList.add('hidden'); }
+            
+            if(prep.length === 0){
+                document.getElementById('kds-grid').innerHTML = `<div class="col-span-full text-center text-gray-400 py-20 bg-white rounded-2xl border-dashed border-2 border-gray-200"><i class="fa-solid fa-fire-burner text-6xl opacity-30 mb-4"></i><p class="font-bold text-xl">目前沒有待處理的訂單</p></div>`;
+                return;
+            }
+
+            document.getElementById('kds-grid').innerHTML = prep.map(o=>`
+                <div class="bg-white p-5 rounded-2xl border shadow-sm flex flex-col">
+                    <div class="flex justify-between items-center mb-4 pb-3 border-b"><h3 class="font-black text-xl bg-yellow-400 text-yellow-900 px-3 py-1 rounded-lg">單號 #${o.id}</h3><span class="text-sm font-bold text-gray-500">${o.time}</span></div>
+                    <div class="flex-1 space-y-2 mb-4 bg-gray-50 p-3 rounded-lg">
+                        ${o.items.map(i=>`<div class="flex gap-3 items-start"><span class="text-red-500 font-black text-lg w-6">${i.qty}</span><span class="font-bold text-lg text-gray-800 leading-tight">${i.name}</span></div>`).join('')}
+                    </div>
+                    <button onclick="finishOrder('${o.id}')" class="mt-auto w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold shadow-md transition-colors text-lg click-effect"><i class="fa-solid fa-check mr-2"></i>完成出餐</button>
+                </div>
+            `).join('');
+        }
+
+        function finishOrder(orderId) {
+            const order = orders.find(o => o.id === orderId);
+            if(order) { order.status = 'completed'; updateKDS(); updateHistory(); }
+        }
+
+        function updateHistory(){
+            const rev = [...orders].reverse();
+            let c=0, t=0, csh=0, st=0;
+            rev.forEach(o=>{ 
+                if(o.type==='order'){ c++; t+=(o.originalTotal-o.discount); csh+=(o.paidCash||0); st+=(o.deductStored||0); }
+                if(o.type==='topup'){ csh+=(o.paidCash||0); }
+            });
+            document.getElementById('summary-customer-count').innerText = c;
+            document.getElementById('summary-total-sales').innerText = `$${t.toLocaleString()}`;
+            document.getElementById('summary-actual-cash').innerText = `$${csh.toLocaleString()}`;
+            document.getElementById('summary-stored-used').innerText = `$${st.toLocaleString()}`;
+            
+            const tbody = document.getElementById('history-table');
+            if(rev.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-10 text-center text-gray-400 font-bold">尚無帳務紀錄，您也可點擊上方重整按鈕從雲端重新載入</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = rev.map(o=>`
+                <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                    <td class="p-3 md:p-4 font-bold text-gray-800 text-base md:text-lg">#${o.id}</td>
+                    <td class="p-3 md:p-4 font-bold text-xs">${o.type==='topup'?'<span class="text-blue-600 bg-blue-100 px-2 py-1 rounded border border-blue-200">加值</span>':'<span class="text-gray-600 bg-gray-200 px-2 py-1 rounded border border-gray-300">訂單</span>'}</td>
+                    <td class="p-3 md:p-4 text-gray-500 text-xs md:text-sm font-medium">${o.time}</td>
+                    <td class="p-3 md:p-4 text-xs md:text-sm font-bold text-gray-600">${o.member}</td>
+                    <td class="p-3 md:p-4 text-right font-black text-gray-900 text-lg">$${o.paidCash||0}</td>
+                    <td class="p-3 md:p-4 text-gray-500 text-xs font-bold text-right">${o.type==='topup'?'加值存入餘額':(o.deductStored>0?`扣抵儲值 $${o.deductStored}`:'全額付現')}</td>
+                    <td class="p-3 md:p-4 text-center">
+                        <div class="flex justify-center gap-2">
+                            <button onclick="printReceiptById('${o.id}')" class="bg-gray-100 text-gray-600 p-2 rounded-full hover:bg-gray-300 transition-colors click-effect w-8 h-8 flex justify-center items-center" title="補印"><i class="fa-solid fa-print"></i></button>
+                            <button onclick="downloadReceiptImage('${o.id}')" class="bg-green-50 text-green-600 p-2 rounded-full hover:bg-green-100 transition-colors click-effect w-8 h-8 flex justify-center items-center" title="下載圖檔"><i class="fa-solid fa-image"></i></button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        // --- 匯出 CSV ---
+        function downloadOrdersCSV(){
+            if (orders.length === 0) { alert('目前沒有任何紀錄可以匯出！'); return; }
+            let csvContent = "\uFEFF單號,帳務屬性,時間,狀態,收銀員,購買對象,實收現金,扣抵儲值金,明細\n";
+            orders.forEach(o => {
+                const typeStr = o.type === 'topup' ? '儲值' : '訂單';
+                const statusStr = o.status === 'preparing' ? '製作中' : '已完成';
+                const itemsStr = o.items.map(i => `${i.name}x${i.qty}`).join('; ');
+                csvContent += `${o.id},${typeStr},${o.time},${statusStr},${o.cashier},${o.member},${o.paidCash||0},${o.deductStored||0},"${itemsStr}"\n`;
+            });
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `AURA_財務與訂單對帳表_${new Date().toISOString().slice(0,10)}.csv`;
+            link.click();
+        }
+        
+        // --- 收據列印系統 ---
+        let bluetoothDevice = null;
+        let printCharacteristic = null;
+
+        async function connectBluetoothPrinter() {
+            try {
+                bluetoothDevice = await navigator.bluetooth.requestDevice({
+                    acceptAllDevices: true,
+                    optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb', 'e7810a71-73ae-499d-8c15-faa9aef0c3f2', '49535343-fe7d-4ae5-8fa9-9fafd205e455']
+                });
+                document.getElementById('bt-status').innerText = '連線中...';
+                const server = await bluetoothDevice.gatt.connect();
+                const services = await server.getPrimaryServices();
+                for (const service of services) {
+                    const characteristics = await service.getCharacteristics();
+                    for (const char of characteristics) {
+                        if (char.properties.write || char.properties.writeWithoutResponse) {
+                            printCharacteristic = char;
+                            document.getElementById('bt-status').innerText = '藍牙已連線';
+                            document.getElementById('bt-status').parentElement.classList.replace('bg-gray-700', 'bg-green-600');
+                            alert('藍牙連線成功！'); return;
+                        }
+                    }
+                }
+                document.getElementById('bt-status').innerText = '連接出單機';
+            } catch (error) {
+                document.getElementById('bt-status').innerText = '連接出單機';
+                if (error.name !== 'NotFoundError') alert('連線失敗：' + error.message);
+            }
+        }
+
+        function printReceiptById(orderId) {
+            const order = orders.find(o => o.id === orderId);
+            if (order) printReceipt(order);
+        }
+
+        async function printReceipt(order) {
+            if (printCharacteristic) {
+                // ... 藍牙列印邏輯不變
+                try {
+                    let text = "\n      AURA 收銀系統\n--------------------------------\n";
+                    text += `單號: #${order.id}\n時間: ${order.time}\n收銀員: ${order.cashier}\n會員: ${order.member}\n--------------------------------\n`;
+                    if (order.type === 'topup') { text += `會員儲值加值  $${order.total}\n`; } 
+                    else { order.items.forEach(item => { text += `${item.name} x${item.qty}  $${item.price * item.qty}\n`; }); }
+                    text += "--------------------------------\n";
+                    text += `應付總額: $${(order.originalTotal - (order.discount || 0)) || order.total}\n`;
+                    if (order.type !== 'topup') { text += `(扣抵:$${order.deductStored || 0} 點數:-$${order.pointsUsed || 0} 現金:$${order.paidCash || 0})\n`; }
+                    text += "--------------------------------\n      謝謝惠顧！\n\n\n";
+
+                    const encoder = new TextEncoder();
+                    const data = encoder.encode(text);
+                    for (let i = 0; i < data.length; i += 100) { await printCharacteristic.writeValue(data.slice(i, i + 100)); }
+                    return; 
+                } catch (e) { alert('藍牙傳輸中斷，將轉為網頁列印'); }
+            }
+
+            const printArea = document.getElementById('print-receipt-template');
+            let itemsHTML = '';
+            if (order.type === 'topup') {
+                 itemsHTML = `<div style="display: flex; justify-content: space-between; margin: 4px 0;"><span style="font-size: 14px;">會員儲值金加值</span><span style="font-size: 14px; font-weight: bold;">$${order.total}</span></div>`;
+            } else {
+                 itemsHTML = order.items.map(item => `<div style="display: flex; justify-content: space-between; margin: 4px 0;"><span style="font-size: 14px;">${item.name} x${item.qty}</span><span style="font-size: 14px; font-weight: bold;">$${item.price * item.qty}</span></div>`).join('');
+            }
+
+            const origTotal = order.originalTotal !== undefined ? order.originalTotal : order.total;
+            const discount = order.discount !== undefined ? order.discount : 0;
+            const pointsUsed = order.pointsUsed !== undefined ? order.pointsUsed : 0;
+            const totalDiscount = discount + pointsUsed;
+
+            printArea.innerHTML = `
+                <div style="font-family: monospace, sans-serif; padding: 25px; max-width: 76mm; margin: 0 auto; text-align: left; color: #000; background: #fff;">
+                    <div style="text-align: center; font-size: 20px; font-weight: 900; margin-bottom: 5px; letter-spacing: 2px;">AURA POS收銀系統</div>
+                    <div style="text-align: center; font-size: 12px; margin-bottom: 12px; color: #555;">誠摯為您服務</div>
+                    <div style="border-bottom: 1px dashed #000; margin-bottom: 10px;"></div>
+                    <div style="font-size: 12px; line-height: 1.6; margin-bottom: 10px;">
+                        <div>單據屬性: ${order.type === 'topup' ? '【加值憑證】' : '【交易明細】'}</div>
+                        <div>訂單單號: #${order.id}</div>
+                        <div>交易時間: ${order.time}</div>
+                        <div>收銀人員: ${order.cashier}</div>
+                        <div>會員帳號: ${order.member}</div>
+                    </div>
+                    <div style="border-bottom: 1px dashed #000; margin-bottom: 10px;"></div>
+                    <div style="margin-bottom: 10px;">${itemsHTML}</div>
+                    <div style="border-bottom: 1px dashed #000; margin-bottom: 10px;"></div>
+                    <div style="font-size: 13px; line-height: 1.6; margin-bottom: 15px;">
+                        ${order.type !== 'topup' ? `<div style="display: flex; justify-content: space-between;"><span>商品總計:</span><span>$${origTotal}</span></div><div style="display: flex; justify-content: space-between;"><span>優惠折抵:</span><span>-$${totalDiscount}</span></div>` : ''}
+                        <div style="display: flex; justify-content: space-between; font-weight: 900; font-size: 16px; margin-top: 5px; border-top: 1px solid #eee; padding-top: 5px;"><span>應付總額:</span><span>$${order.type === 'topup' ? order.total : origTotal - discount - pointsUsed}</span></div>
+                    </div>
+                    <div style="border-bottom: 1px dashed #000; margin-bottom: 15px;"></div>
+                    <div style="text-align: center; font-size: 12px; font-weight: bold;">* 謝謝惠顧，AURA 期待您再度光臨！ *</div>
+                </div>`;
+            printArea.classList.remove('hidden');
+            setTimeout(() => { window.print(); printArea.classList.add('hidden'); }, 300);
+        }
+
+        // --- 畫布截圖收據 ---
+        function downloadReceiptImage(orderId) {
+            const order = orders.find(o => o.id === orderId);
+            if (!order) return;
+
+            const width = 400; const itemHeight = 30; const headerHeight = 200; const totalsHeight = 200; const footerHeight = 80;
+            const itemsCount = order.type === 'topup' ? 1 : order.items.length;
+            const height = headerHeight + (itemsCount * itemHeight) + totalsHeight + footerHeight;
+
+            const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, width, height);
+            ctx.fillStyle = '#000000'; ctx.textAlign = 'center';
+
+            let y = 45;
+            ctx.font = 'bold 24px monospace, sans-serif'; ctx.fillText('AURA 餐飲POS收銀系統', width / 2, y); y += 25;
+            ctx.font = '14px monospace, sans-serif'; ctx.fillStyle = '#555555'; ctx.fillText('誠摯為您服務', width / 2, y); y += 25;
+
+            function drawLine(yPos) { ctx.beginPath(); ctx.setLineDash([5, 5]); ctx.moveTo(20, yPos); ctx.lineTo(width - 20, yPos); ctx.strokeStyle = '#000000'; ctx.lineWidth = 1; ctx.stroke(); ctx.setLineDash([]); }
+            drawLine(y); y += 30;
+
+            ctx.textAlign = 'left'; ctx.fillStyle = '#000000'; ctx.font = '15px monospace, sans-serif';
+            ctx.fillText(`單據屬性: ${order.type === 'topup' ? '【加值憑證】' : '【交易明細】'}`, 20, y); y += 25;
+            ctx.fillText(`訂單單號: #${order.id}`, 20, y); y += 25;
+            ctx.fillText(`交易時間: ${order.time}`, 20, y); y += 25;
+            ctx.fillText(`收銀人員: ${order.cashier}`, 20, y); y += 25;
+            ctx.fillText(`會員帳號: ${order.member}`, 20, y); y += 25;
+            drawLine(y); y += 30;
+
+            if (order.type === 'topup') {
+                ctx.textAlign = 'left'; ctx.fillText(`會員儲值金加值`, 20, y);
+                ctx.textAlign = 'right'; ctx.fillText(`$${order.total}`, width - 20, y); y += itemHeight;
+            } else {
+                order.items.forEach(item => {
+                    ctx.textAlign = 'left'; ctx.fillText(`${item.name} x${item.qty}`, 20, y);
+                    ctx.textAlign = 'right'; ctx.fillText(`$${item.price * item.qty}`, width - 20, y); y += itemHeight;
+                });
+            }
+            drawLine(y); y += 30;
+
+            const origTotal = order.originalTotal !== undefined ? order.originalTotal : order.total;
+            const discount = order.discount !== undefined ? order.discount : 0;
+            const pointsUsed = order.pointsUsed !== undefined ? order.pointsUsed : 0;
+            const totalDiscount = discount + pointsUsed;
+
+            if (order.type !== 'topup') {
+                ctx.textAlign = 'left'; ctx.fillText(`商品總計:`, 20, y); ctx.textAlign = 'right'; ctx.fillText(`$${origTotal}`, width - 20, y); y += 25;
+                ctx.textAlign = 'left'; ctx.fillText(`優惠折抵:`, 20, y); ctx.textAlign = 'right'; ctx.fillText(`-$${totalDiscount}`, width - 20, y); y += 35;
+            }
+            ctx.font = 'bold 20px monospace, sans-serif'; ctx.textAlign = 'left'; ctx.fillText(`應付總額:`, 20, y);
+            ctx.textAlign = 'right'; ctx.fillText(`$${order.type === 'topup' ? order.total : origTotal - discount - pointsUsed}`, width - 20, y); y += 30;
+
+            ctx.font = '13px monospace, sans-serif'; ctx.fillStyle = '#555555'; ctx.textAlign = 'right';
+            if (order.type !== 'topup') { ctx.fillText(`(儲值金扣抵: $${order.deductStored || 0}, 現金: $${order.paidCash || 0})`, width - 20, y); y += 40; }
+            else { ctx.fillText(`(全額現金付款)`, width - 20, y); y += 40; }
+
+            drawLine(y); y += 40;
+            ctx.textAlign = 'center'; ctx.font = 'bold 15px monospace, sans-serif'; ctx.fillStyle = '#000000';
+            ctx.fillText('* 謝謝惠顧，AURA 期待您再度光臨！ *', width / 2, y);
+
+            const dataUrl = canvas.toDataURL('image/jpeg', 1.0);
+            const link = document.createElement('a'); link.href = dataUrl;
+            link.download = `收據_單號${order.id}.jpg`;
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
